@@ -5,10 +5,11 @@ class QuantityError(Exception):
 	def __init__(self, msg: str):
 		self.msg = msg
 
-	def __repr__(self) -> str:
-		return f"<{self.get_name()}: {self.msg}>"
+	def __str__(self) -> str:
+		return self.msg
 
-	@classmethod
-	def get_name(cls) -> str:
-		return cls.__name__
 
+class PrefixError(QuantityError, KeyError):
+	def __init__(self, msg: str):
+		QuantityError.__init__(self, msg)
+		KeyError.__init__(self)

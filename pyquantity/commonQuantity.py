@@ -1,4 +1,5 @@
-"""Module with common quantity"""
+"""Module with common quantities"""
+from . import Quantity
 
 
 class Time(Quantity):

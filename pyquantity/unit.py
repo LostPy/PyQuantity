@@ -1,92 +1,111 @@
+from collections import namedtuple
+from typing import Union, List, Tuple, Generator
+
 from . import errors
 
 
-class Prefix:
-	__names_list: tuple = (
-		'yotta',
-		'zetta',
-		'exa',
-		'peta',
-		'tera',
-		'giga',
-		'mega',
-		'kilo',
-		'hecto',
-		'deca',
-		'none',
-		'deci',
-		'centi',
-		'mili',
-		'micro',
-		'nano',
-		'pico',
-		'femto',
-		'atto',
-		'zetta',
-		'yocto'
-	)
+Prefix = namedtuple('Prefix', ('name', 'symbol', 'value'))
 
-	__symbols_list: tuple = (
-		'Y',
-		'Z',
-		'E',
-		'P',
-		'T',
-		'G',
-		'M',
-		'k',
-		'h',
-		'da',
-		'',
-		'd',
-		'c',
-		'm',
-		'u',
-		'n',
-		'p',
-		'f',
-		'a',
-		'z',
-		'y'
-	)
 
-	__values_list: tuple = (
-		1e24,
-		1e21,
-		1e18,
-		1e15,
-		1e12,
-		1e9,
-		1e6,
-		1e3,
-		100,
-		10,
-		1,
-		0.1,
-		0.01,
-		1e-3,
-		1e-6,
-		1e-9,
-		1e-12,
-		1e-15,
-		1e-18,
-		1e-21,
-		1e-24,
-	)
-	symbols = dict(zip(__names_list, __symbols_list))
-	values = dict(zip(__names_list, __values_list))
+class PrefixEnum:
+	yotta = Prefix('yotta', 'Y', 1e24)
+	zetta = Prefix('zetta', 'Z', 1e21)
+	exa = Prefix('exa', 'E', 1e18)
+	peta = Prefix('peta', 'P', 1e15)
+	tera = Prefix('tera', 'T', 1e12)
+	giga = Prefix('giga', 'G', 1e9)
+	mega = Prefix('mega', 'M', 1e6)
+	kilo = Prefix('kilo', 'k', 1e3)
+	hecto = Prefix('hecto', 'h', 1e2)
+	deca = Prefix('deca', 'da', 1e1)
+	none = Prefix('', '', 1e0)
+	deci = Prefix('deci', 'd', 1e-1)
+	centi = Prefix('centi', 'c', 1e-2)
+	mili = Prefix('mili', 'm', 1e-3)
+	micro = Prefix('micro', 'u', 1e-6)
+	nano = Prefix('nano', 'n', 1e-9)
+	pico = Prefix('pico', 'p', 1e-12)
+	femto = Prefix('femto', 'f', 1e-15)
+	atto = Prefix('atto', 'a', 1e-18)
+	zepto = Prefix('zepto', 'z', 1e-21)
+	yocto = Prefix('yocto', 'y', 1e-24)
 
-	@staticmethod
-	def name_from_value(value: int) -> str:
-		return dict(zip(__values_list, __names_list))[value]
+	@classmethod
+	def add_prefix(cls, name: str, symbol: str, value: float):
+		if not isinstance(name, str):
+			raise ValueError(f"'name' must be a str not a '{type(name)}'")
+		if not isinstance(symbol, str):
+			raise ValueError(f"'symbol' must be a str not a '{type(symbol)}'")
+		if not isinstance(value, float):
+			raise ValueError(f"'value' must be a float not a '{type(value)}'")
+		setattr(cls, name, Prefix(name, symbol, value))
 
-	@staticmethod
-	def symbol_from_value(value: int) -> str:
-		return dict(zip(__values_list, __symbols_list))[value]
+	@classmethod
+	def remove_prefix(cls, name: str):
+		if not isinstance(name, str):
+			raise ValueError(f"'name' must be a str not a '{type(name)}'")
+		if name in dir(cls):
+			return delattr(cls, name)
+		raise errors.PrefixError(f"The prefix '{name}' does not exist")
 
-	@staticmethod
-	def name_from_symbol(symbol: str) -> str:
-		return dict(zip(__symbols_list, __names_list))[symbol]
+	@classmethod
+	def _get_all_prefix(cls) -> List[Prefix]:
+		return [attr_ for attr_ in dir(cls) if isinstance(attr_, Prefix)]
+
+	@classmethod
+	def _get_all_symbols(cls) -> Generator:
+		return (attr_.symbol for attr_ in dir(cls) if isinstance(attr_, Prefix))
+
+	@classmethod
+	def _get_prefix_with_value(cls, value: float) -> Prefix:
+		for prefix in cls._get_all_prefix():
+			if prefix.value == value:
+				return prefix
+		raise PrefixError(f"The prefix with value '{value}' does not exist")
+
+	@classmethod
+	def _get_prefix_with_symbol(cls, symbol: str) -> Prefix:
+		for prefix in cls._get_all_prefix():
+			if prefix.symbol == symbol:
+				return prefix
+			raise PrefixError(f"The prefix symbol '{symbol}' does not exist")
+
+	@classmethod
+	def get_prefix(cls, arg: Union[str, float]) -> Prefix:
+		if isinstance(arg, str) and arg in dir(PrefixEnum):
+			return getattr(cls, arg)
+
+		elif isinstance(arg, str) and arg in cls._get_all_symbols():
+			return _get_prefix_with_symbol(arg)
+
+		elif isinstance(arg, float):
+			return cls._get_prefix_with_value(arg)
+
+		elif isinstance(arg, str):
+			raise errors.PrefixError(f"The prefix name or symbol '{arg}' does not exist")
+
+		raise ValueError(f"'arg' must be a str or a float, not a {type(arg)}")
+
+	@classmethod
+	def convert_value(cls, value: float, to_: Union[str, float, Prefix], from_: Union[str, float, Prefix] = None) -> float:
+		try:
+			value = float(value)
+		except Exception:
+			raise ValueError(f"'value' must be a float, not a {type(value)}")
+
+		if isinstance(to_, (str, float)):
+			to_ = cls.get_prefix(to_)
+		elif not isinstance(to_, Prefix):
+			raise ValueError(f"'to_' must be a str, float or a Prefix, not a {type(to_)}")
+
+		if isinstance(from_, (str, float)):
+			from_ = cls.get_prefix(from_)
+		elif from_ is None:
+			from_ = cls.none
+		elif not isinstance(from_, Prefix):
+			raise ValueError(f"'from_' must be a str, float or a Prefix, not a {type(from_)}")
+
+		return value / (to_.value / from_.value)
 
 
 class Unit:
@@ -100,8 +119,11 @@ class Unit:
 		self.symbol = symbol
 		self.description = description
 
-	def __repr__(self):
-		return f"Units {self.name} ({self.symbol}). {self.description}"
+	def __repr__(self) -> str:
+		return f"<Units {self.name} ({self.symbol}). {self.description}>"
+
+	def __str__(self) -> str:
+		return f"{self.name} ({self.symbol})"
 
 	@property
 	def name(self) -> str:
@@ -118,20 +140,20 @@ class Unit:
 	@name.setter
 	def name(self, new_name: str):
 		if not isinstance(new_name, str):
-			raise ValueError(f"'name' must be a string not a {type(new_name)}")
+			raise ValueError(f"'name' must be a str not a {type(new_name)}")
 		self._name = new_name
 			
 	@symbol.setter
 	def symbol(self, new_symbol: str):
 		if not isinstance(new_symbol, str):
-			raise ValueError(f"'symbol' must be a string not a {type(new_name)}")
+			raise ValueError(f"'symbol' must be a str not a {type(new_name)}")
 		self._symbol = new_symbol
 
 	@description.setter
 	def description(self, new_desc: str):
 		if not isinstance(new_desc, str):
-			raise ValueError(f"'description' must be a string not a {type(new_desc)}")
-		self._description = description
+			raise ValueError(f"'description' must be a str not a {type(new_desc)}")
+		self._description = new_desc
 
 	def is_base_unit(self) -> bool:
 		return self._base_unit
@@ -139,20 +161,23 @@ class Unit:
 	def is_derived_unit(self) -> bool:
 		return not self._base_unit
 
-	def get_with_prefix(self, prefix: str) -> str:
-		return Prefix.symbols[prefix] + self.name
+	def name_with_prefix(self, prefix: Union[str, Prefix]) -> str:
+		if isinstance(prefix, Prefix):
+			return prefix.name + self.name
+		elif isinstance(prefix, str):
+			return getattr(PrefixEnum, prefix).name + self.name
+		raise ValueError(f"'prefix' must be a str or a Prefix, not {type(prefix)}")
+
+	def symbol_with_prefix(self, prefix: Union[str, float, Prefix]) -> str:
+		if isinstance(prefix, Prefix):
+			return prefix.symbol + self.name
+		elif isinstance(prefix, (str, float)):
+			return PrefixEnum.get_prefix(prefix).symbol + self.symbol
+		raise ValueError(f"'prefix' must be a str or a Prefix, not {type(prefix)}")
 
 
 class BaseUnit(Unit):
 	_base_unit = True
-
-	@name.setter
-	def name(self, new_name: str):
-		raise errors.QuantityError("You cannot set the name of a base unit")
-
-	@symbol.setter
-	def symbol(self, new_symbol: str):
-		raise errors.QuantityError("You cannot set the name of a base unit")
 
 	@staticmethod
 	def metre():
