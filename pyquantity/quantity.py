@@ -102,27 +102,27 @@ class Quantity:
 
 	def __lt__(self, other) -> bool:
 		"""self < other"""
-		self.__compare(other, operator.lt)
+		return self.__compare(other, operator.lt)
 
 	def __le__(self, other) -> bool:
 		"""self <= other"""
-		self.__compare(other, operator.le)
+		return self.__compare(other, operator.le)
 
 	def __eq__(self, other) -> bool:
 		"""self == other"""
-		self.__compare(other, operator.eq)
+		return self.__compare(other, operator.eq)
 
 	def __ne__(self, other) -> bool:
 		"""self != other"""
-		self.__compare(other, operator.ne)
+		return self.__compare(other, operator.ne)
 
 	def __gt__(self, other) -> bool:
 		"""self > other"""
-		self.__compare(other, operator.gt)
+		return self.__compare(other, operator.gt)
 
 	def __ge__(self, other) -> bool:
 		"""self >= other"""
-		self.__compare(other, operator.ge)
+		return self.__compare(other, operator.ge)
 
 	def __assignement(self, other, op):
 		"""Method for assignment operators.
@@ -141,9 +141,13 @@ class Quantity:
 		return new
 
 	def __compare(self, other, op) -> bool:
-		"""Method to compare self and other with a operator."""
+		"""Method to compare self and other with a operator.
+		other can be a int or float. If other is a int or float, it is defined with the base prefix.
+		"""
 		if type(other) == type(self):
 			return op(self._value, other.value)
+		elif isinstance(other, (int, float)):
+			return op(self._value, PrefixEnum.convert_value(other, to_=PrefixEnum.none, from_=self._base_prefix))
 		raise ValueError(f"Can't compare '{type(self)}' with '{type(other)}'")
 
 	def _format_real_value(self) -> str:

@@ -19,6 +19,7 @@ def base_unit():
 	print('meter is a derived unit: ', meter.is_derived_unit())
 	print('str(meter) = ', str(meter))
 
+
 def test_quantity():
 	q = Quantity(10.5, BaseUnit.meter())
 	print(q)
@@ -30,7 +31,17 @@ def test_quantity():
 	print('q.value', q.value)
 
 
+def test_operations():
+	q1 = Quantity(10.3, BaseUnit.meter())
+	q2 = Quantity(21.3, BaseUnit.meter())
+	print(q1 < q2)
+	print(q1 == q2)
+	print(q1 > 15)
+	print(q2 > 15)
+
+
 if __name__ == '__main__':
 	#test_prefix()
 	#base_unit()
-	test_quantity()
+	#test_quantity()
+	test_operations()
