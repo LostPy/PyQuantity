@@ -1,4 +1,6 @@
 from typing import Union
+import operator
+from copy import deepcopy
 
 from . import PrefixEnum, Unit, BASE_UNITS
 from .unit import Prefix
@@ -72,39 +74,23 @@ class Quantity:
 
 	def __iadd__(self, other):
 		"""self += other"""
-		raise NotImplemented
+		self.__assignement(other, operator.iadd)
 
 	def __isub__(self, other):
 		"""self -= other"""
-		raise NotImplemented
-
-	def __imul__(self, other):
-		"""self *= other"""
-		raise NotImplemented
-
-	def __ifloordiv__(self, other):
-		"""self //= other"""
-		raise NotImplemented
-
-	def __idiv__(self, other):
-		"""self /= other"""
-		raise NotImplemented
-
-	def __ipow__(self, other):
-		"""self **= other"""
-		raise NotImplemented
+		self.__assignement(other, operator.isub)
 
 	def __pos__(self):
 		""" + self"""
-		raise NotImplemented
+		return self.__unary_operation(operator.pos)
 
 	def __neg__(self):
 		"""- self"""
-		raise NotImplemented
+		return self.__unary_operation(operator.neg)
 
 	def __abs__(self):
 		""" abs(self)"""
-		raise NotImplemented
+		return self.__unary_operation(operator.abs)
 
 	def __int__(self) -> int:
 		"""int(self)"""
@@ -116,27 +102,49 @@ class Quantity:
 
 	def __lt__(self, other) -> bool:
 		"""self < other"""
-		raise NotImplemented
+		self.__compare(other, operator.lt)
 
 	def __le__(self, other) -> bool:
 		"""self <= other"""
-		raise NotImplemented
+		self.__compare(other, operator.le)
 
 	def __eq__(self, other) -> bool:
 		"""self == other"""
-		raise NotImplemented
+		self.__compare(other, operator.eq)
 
 	def __ne__(self, other) -> bool:
 		"""self != other"""
-		raise NotImplemented
+		self.__compare(other, operator.ne)
 
 	def __gt__(self, other) -> bool:
 		"""self > other"""
-		raise NotImplemented
+		self.__compare(other, operator.gt)
 
 	def __ge__(self, other) -> bool:
 		"""self >= other"""
-		raise NotImplemented
+		self.__compare(other, operator.ge)
+
+	def __assignement(self, other, op):
+		"""Method for assignment operators.
+		other can be a int or float. If other is a int or float, it is defined with the base prefix.
+		"""
+		if type(other) == type(self):
+			op(self._value, other.value)
+		elif isinstance(other, (int, float)):
+			op(self._value, PrefixEnum.convert_value(other, to_=PrefixEnum.none, from_=self._base_prefix))
+		raise ValueError(f"Can't do a assignment between {type(self)} and {type(other)}")
+
+	def __unary_operation(self, op):
+		"""Method for unary operator"""
+		new = deepcopy(self)
+		new.none = op(self._value)
+		return new
+
+	def __compare(self, other, op) -> bool:
+		"""Method to compare self and other with a operator."""
+		if type(other) == type(self):
+			return op(self._value, other.value)
+		raise ValueError(f"Can't compare '{type(self)}' with '{type(other)}'")
 
 	def _format_real_value(self) -> str:
 		if abs(self._value) >= 1000:
