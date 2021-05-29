@@ -192,6 +192,10 @@ class BaseUnit(Unit):
 		return BASE_UNITS['second']
 
 	@staticmethod
+	def gram():
+		return BASE_UNITS['gram']
+
+	@staticmethod
 	def kelvin():
 		return BASE_UNITS['kelvin']
 
@@ -216,14 +220,32 @@ class BaseUnit(Unit):
 		return BASE_UNITS['steradian']
 
 
+class DerivedUnit(Unit)
+	
+	@staticmethod
+	def celcius():
+		return DERIVED_UNIT['celcius']
+
+	@staticmethod
+	def fahrenheit():
+		return DERIVED_UNIT['fahrenheit']
+
+
 BASE_UNITS = {
 	'metre': BaseUnit('Metre', 'm', description="The base unit of lenght."),
 	'meter': BaseUnit('Meter', 'm', description="The base unit of lenght"),
 	'second': BaseUnit('Second', 's', description="The base unit of time"),
+	'gram': BaseUnit('Gram', 'g', description="The base unit of mass"),
 	'kelvin': BaseUnit('Kelvin', 'K', description="The base unit of temperature"),
 	'mole': BaseUnit('Mole', 'mol', description="The base unit of amount of substance"),
 	'ampere': BaseUnit('Ampere', 'A', description="The base unit of electric current"),
 	'candela': BaseUnit('Candela', 'cd', description="The base unit of luminous intensity"),
 	'radian': BaseUnit('Radian', 'rad', description="The base unit of plane angle"),
 	'steradian': BaseUnit('Steradian', 'sr', description="The base unit of solid angle")
+}
+
+
+DERIVED_UNIT = {
+	'celcius': DerivedUnit('Celcius', '°C', description="The unit of Celcius temperature"),
+	'fahrenheit': DerivedUnit('Fahrenheit', '°F', description="The unit of Fahrenheit temperature")
 }
