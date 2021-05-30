@@ -39,6 +39,11 @@ def test_operations():
 	print(q1 > 15)
 	print(q2 > 15)
 
+	print(-q1)
+	print(+q2)
+	print(q1 * 4)
+	print(q1 + q2)
+
 
 if __name__ == '__main__':
 	#test_prefix()

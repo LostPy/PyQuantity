@@ -1,9 +1,10 @@
 from typing import Union
 import operator
 from copy import deepcopy
+from math import log10
 
-from . import PrefixEnum, Unit, BASE_UNITS
-from .unit import Prefix
+from . import Prefix, PrefixEnum
+from .unit import Unit
 from . import errors
 
 
@@ -38,11 +39,20 @@ class Quantity:
 
 	def __repr__(self) -> str:
 		"""repr(self)"""
-		return f"<{self.name}: {self._value} {self.unit.symbol_with_prefix(self._base_prefix)}>"
+		return f"<{self.name}: {self._value} {self.unit.symbol}>"
 
 	def __str__(self) -> str:
 		"""str(self)"""
-		return f"{self._value} {self.unit.symbol_with_prefix(self._base_prefix)}"
+		exp = int(log10(abs(self._value)))
+		if exp > 24:
+			return f"{self.Y:.3e} {self.unit.symbol_with_prefix(PrefixEnum.yotta)}"
+		elif exp < -24:
+			return f"{self.y:.3e} {self.unit.symbol_with_prefix(PrefixEnum.yocto)}"
+		rank = exp // 3
+		prefix = PrefixEnum.get_prefix_with_rank(rank)
+		if abs(rank) > 8:
+			return f"{self.value_to_prefix(prefix):.3e} {self.unit.symbol_with_prefix(prefix)}"
+		return f"{self.value_to_prefix(prefix):.3f} {self.unit.symbol_with_prefix(prefix)}"
 
 	def __format__(self, fmt_spec: str = "") -> str:
 		"""format(self, str)"""
@@ -50,23 +60,19 @@ class Quantity:
 
 	def __add__(self, other):
 		"""self + other"""
-		raise NotImplemented
+		return self.__addition(other, operator.add)
 
 	def __sub__(self, other):
 		"""self - other"""
-		raise NotImplemented
+		return self.__addition(other, operator.sub)
 
 	def __mul__(self, other):
 		"""self * other"""
-		raise NotImplemented
-
-	def __floordiv__(self, other):
-		"""self // other"""
-		raise NotImplemented
+		return self.__product(other, operator.mul)
 
 	def __div__(self, other):
 		"""self / other"""
-		raise NotImplemented
+		return self.__product(other, operator.div)
 
 	def __pow__(self, other):
 		"""self ** other"""
@@ -124,9 +130,71 @@ class Quantity:
 		"""self >= other"""
 		return self.__compare(other, operator.ge)
 
+	def __addition(self, other, op):
+		"""Method for addition or similar
+		other can be a int or float. If other is a int or float it is defined with the base prefix.
+
+		Parameters
+		----------
+		other
+			The second member of operation
+		op : operator
+			The operator to use
+
+		Returns
+		-------
+		quantity : Quantity
+			A new quantity instance of same type than self
+		"""
+		new = deepcopy(self)
+		if type(other) == type(self):
+			new._value = op(self._value, other.value)
+		elif isinstance(other, (int, float)):
+			new._value = op(self._value, float(other))
+		else:
+			raise ValueError(f"Can't do a addition between {type(self)} and {type(other)}")
+		return new
+
+	def __product(self, other, op):
+		"""Method for product or similar
+		other can be a int or float.
+
+		Parameters
+		----------
+		other
+			The second member of operation
+		op : operator
+			The operator to use
+		
+		Returns
+		-------
+		quantity : Quantity
+			A new quantity instance
+
+		Raises
+		------
+		NotImplemented
+			If other is an quantity
+		"""
+		new = deepcopy(self)
+		if isinstance(other, (int, float)):
+			new._value = op(self._value, float(other))
+		elif isinstance(other, Quantity):
+			raise NotImplemented
+		else:
+			raise ValueError(f"Can't do a addition between {type(self)} and {type(other)}")
+		return new
+
 	def __assignement(self, other, op):
 		"""Method for assignment operators.
 		other can be a int or float. If other is a int or float, it is defined with the base prefix.
+
+		Parameters
+		----------
+		other
+			The second member of operation
+		op : operator
+			The operator to use
 		"""
 		if type(other) == type(self):
 			op(self._value, other.value)
@@ -135,14 +203,37 @@ class Quantity:
 		raise ValueError(f"Can't do a assignment between {type(self)} and {type(other)}")
 
 	def __unary_operation(self, op):
-		"""Method for unary operator"""
+		"""Method for unary operator
+		
+		Parameters
+		----------
+		op : operator
+			The operator to use
+		
+		Returns
+		-------
+		quantity : Quantity
+			A new quantity instance of same type than self
+		"""
 		new = deepcopy(self)
-		new.none = op(self._value)
+		new._value = op(self._value)
 		return new
 
 	def __compare(self, other, op) -> bool:
 		"""Method to compare self and other with a operator.
 		other can be a int or float. If other is a int or float, it is defined with the base prefix.
+
+		Parameters
+		----------
+		other
+			The second member of operation
+		op : operator
+			The operator to use
+		
+		Returns
+		-------
+		result : bool
+			The result of comparison
 		"""
 		if type(other) == type(self):
 			return op(self._value, other.value)

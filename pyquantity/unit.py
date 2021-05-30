@@ -30,6 +30,31 @@ class PrefixEnum:
 	zepto = Prefix('zepto', 'z', 1e-21)
 	yocto = Prefix('yocto', 'y', 1e-24)
 
+
+	_values_to_names = {
+		1e24: yotta,
+		1e21: zetta,
+		1e18: exa,
+		1e15: peta,
+		1e12: tera,
+		1e9: giga,
+		1e6: mega,
+		1e3: kilo,
+		1e2: hecto,
+		1e1: deca,
+		1e0: none,
+		1e-1: deci,
+		1e-2: centi,
+		1e-3: mili,
+		1e-6: micro,
+		1e-9: nano,
+		1e-12: pico,
+		1e-15: femto,
+		1e-18: atto,
+		1e-21: zepto,
+		1e-24: yocto
+	}
+
 	@classmethod
 	def add_prefix(cls, name: str, symbol: str, value: float):
 		if not isinstance(name, str):
@@ -58,17 +83,19 @@ class PrefixEnum:
 
 	@classmethod
 	def _get_prefix_with_value(cls, value: float) -> Prefix:
-		for prefix in cls._get_all_prefix():
-			if prefix.value == value:
-				return prefix
-		raise PrefixError(f"The prefix with value '{value}' does not exist")
+		try:
+			return cls._values_to_names[float(value)]
+		except TypeError:
+			raise ValueError(f"'value' must be a float, not {type(value)}")
+		except KeyError:
+			raise errors.PrefixError(f"The prefix with value '{value}' does not exist")
 
 	@classmethod
 	def _get_prefix_with_symbol(cls, symbol: str) -> Prefix:
 		for prefix in cls._get_all_prefix():
 			if prefix.symbol == symbol:
 				return prefix
-			raise PrefixError(f"The prefix symbol '{symbol}' does not exist")
+			raise errors.PrefixError(f"The prefix symbol '{symbol}' does not exist")
 
 	@classmethod
 	def get_prefix(cls, arg: Union[str, float]) -> Prefix:
@@ -85,6 +112,31 @@ class PrefixEnum:
 			raise errors.PrefixError(f"The prefix name or symbol '{arg}' does not exist")
 
 		raise ValueError(f"'arg' must be a str or a float, not a {type(arg)}")
+
+	@classmethod
+	def get_prefix_with_rank(cls, rank: int):
+		"""Return the prefix for the rank given.
+		The rank define with: rank = int(log10(value)) // 3.
+		If abs(rank) > 8, it's prefix yotta or yocto which is returned.
+
+		Parameters
+		----------
+		rank : int
+			The rank of prefix
+
+		Returns
+		-------
+		prefix : Prefix
+			The prefix corresponding to the rank.
+		"""
+		try:
+			return cls._get_prefix_with_value(pow(10, int(rank)*3))
+		except TypeError:
+			raise ValueError(f"'rank' must be an integer, not {type(rank)}")
+		except errors.PrefixError as e:
+			if abs(rank) > 8:
+				return cls._get_prefix_with_value(pow(10, (rank / abs(rank)) * 8))
+			raise e
 
 	@classmethod
 	def convert_value(cls, value: float, to_: Union[str, float, Prefix], from_: Union[str, float, Prefix] = None) -> float:
@@ -161,19 +213,19 @@ class Unit:
 	def is_derived_unit(self) -> bool:
 		return not self._base_unit
 
-	def name_with_prefix(self, prefix: Union[str, Prefix]) -> str:
+	def name_with_prefix(self, prefix: Union[str, float, Prefix]) -> str:
 		if isinstance(prefix, Prefix):
 			return prefix.name + self.name
-		elif isinstance(prefix, str):
-			return getattr(PrefixEnum, prefix).name + self.name
-		raise ValueError(f"'prefix' must be a str or a Prefix, not {type(prefix)}")
+		elif isinstance(prefix, (str, float)):
+			return PrefixEnum.get_prefix(prefix).name + self.name
+		raise ValueError(f"'prefix' must be a str, a float or a Prefix, not {type(prefix)}")
 
 	def symbol_with_prefix(self, prefix: Union[str, float, Prefix]) -> str:
 		if isinstance(prefix, Prefix):
-			return prefix.symbol + self.name
+			return prefix.symbol + self.symbol
 		elif isinstance(prefix, (str, float)):
 			return PrefixEnum.get_prefix(prefix).symbol + self.symbol
-		raise ValueError(f"'prefix' must be a str or a Prefix, not {type(prefix)}")
+		raise ValueError(f"'prefix' must be a str, a float or a Prefix, not {type(prefix)}")
 
 
 class BaseUnit(Unit):
@@ -220,7 +272,7 @@ class BaseUnit(Unit):
 		return BASE_UNITS['steradian']
 
 
-class DerivedUnit(Unit)
+class DerivedUnit(Unit):
 	
 	@staticmethod
 	def celcius():

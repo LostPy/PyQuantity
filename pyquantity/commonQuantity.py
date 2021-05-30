@@ -32,7 +32,7 @@ class AbsoluteTemperature(Quantity):
 	ORIGIN_CELCIUS = -273.15
 	ORIGIN_FAHRENHEIT = -459.67
 	
-	def __init__(self, value: flaot, prefix: Prefix = PrefixEnum.none):
+	def __init__(self, value: float, prefix: Prefix = PrefixEnum.none):
 		Quantity.__init__(self, value, unit=BaseUnit.kelvin(), base_prefix=PrefixEnum.none, prefix=prefix)
 
 	@property
